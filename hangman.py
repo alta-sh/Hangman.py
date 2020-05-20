@@ -7,7 +7,7 @@ client = commands.Bot(command_prefix='hang!')
 client.remove_command('help')
 
 runningGames = []
-commands = ["help", "play"]
+commands = ["help", "play", "guess"]
 
 # Checks if the user is in a game (if the author.id is in runningGames)
 def isInGame(authorID):
@@ -23,6 +23,11 @@ def endGame(authorID):
             del runningGames[runningGames.index(game)]
 
 
+def getAuthorIndex(authorID):
+    for game in runningGames:
+        if (game["author"] == authorID):
+            return runningGames.index(game)
+
 @client.event
 async def on_ready():
     print('Successfully logged in as {0.user}'.format(client))
@@ -36,7 +41,7 @@ async def on_message(message):
     # Check if the message sender is currently in a game:
     if (isInGame(message.author.id)):
 
-        if (message.content != "hang!guess"):
+        if (not message.content.startswith("hang!guess")):
             # check if they've sent a command
             if (message.content.startswith(client.command_prefix)):
                 await message.channel.send(f"You can't use that command whilst in a game {message.author.name}...\n"+
@@ -64,6 +69,7 @@ async def on_message(message):
 async def help(ctx):
     await ctx.send('here are the commands you can use:... ')
 
+
 @client.command()
 async def play(ctx):
     await ctx.send('Ok {0}, setting up the game now 👍'.format(ctx.message.author.mention))
@@ -74,9 +80,34 @@ async def play(ctx):
                         'type `end` to leave it.')
     else:
         # Add userID, guesses and a random word to runningGames
-        randWord = ''
-        runningGames.append({"author": ctx.message.author.id, "remainingGuesses": 0, "word": randWord})
+        randWord = 'apples'
+        runningGames.append({"author": ctx.message.author.id, "remainingGuesses": 5, "word": randWord})
 
+
+@client.command()
+async def guess(ctx, arg='null'):
+    if (arg == 'null'):
+        await ctx.send("Incorrect usage. Try: `hang!guess {your guess}`")
+        return
+
+    # Check if they're in a game when using the command
+    if (isInGame(ctx.message.author.id)):
+        # Check if the guess is correct
+        authorIndex = getAuthorIndex(ctx.message.author.id)
+        if (arg == runningGames[authorIndex]["word"]):
+            await ctx.send(f"Well done {ctx.message.author.mention}! You guessed the word!")       
+        else: # If they get it wrong
+            # Subtract their remaining guesses
+            if (runningGames[authorIndex]["remainingGuesses"] != 1):
+                runningGames[authorIndex]["remainingGuesses"] -= 1
+                await ctx.send(f"Unlucky {ctx.message.author.mention}, that's not the word..."+
+                            f"\nYou have {runningGames[authorIndex]['remainingGuesses']} guesses left.")
+            else:
+                await ctx.send(f"You're all out of guesses {ctx.message.author.mention}! Better luck next time...")
+                endGame(ctx.message.author.id)
+    else: # If they use the command while not in a game
+        await ctx.send(f"You can only use this command whilst in a Hangman game {ctx.message.author.mention}.\n"+
+                        "Type `hang!play` to get started...")
 
 # Reading the token
 with open('token.txt', 'r') as file:
