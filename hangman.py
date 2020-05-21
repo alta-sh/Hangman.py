@@ -115,6 +115,8 @@ async def on_message(message):
                     checkCharInWord(message.author.id)
                     
                     if (allCharsGuessed(message.author.id)): # End the game
+                        embed = discord.Embed(title="Word: " + runningGames[getAuthorIndex(message.author.id)]["wordPrint"] , color=0x00fffa)
+                        await message.channel.send(embed=embed)
                         await message.channel.send(f"🎉 Well done {message.author.mention}! You guessed the word! 🎉") 
                         endGame(message.author.id)
                         return
