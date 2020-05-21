@@ -16,6 +16,18 @@ with open("nouns.txt", "r") as f:
 runningGames = []
 commands = ["help", "play", "guess"]
 
+# Switch statement returning the string of hangState
+# based on users remainingGuesses
+def getHangState(remainingGuesses):
+    switch = {
+        4: hangState.state0,
+        3: hangState.state1,
+        2: hangState.state2,
+        1: hangState.state3,
+        0: hangState.state4
+    }
+    return switch.get(remainingGuesses)
+
 # Checks if the user is in a game (if the author.id is in runningGames)
 def isInGame(authorID):
     for game in runningGames:
@@ -34,6 +46,13 @@ def getAuthorIndex(authorID):
     for game in runningGames:
         if (game["author"] == authorID):
             return runningGames.index(game)
+
+
+# Will change the wordPrint part of the user dictionary
+# based on the charsGuessed value
+def checkCharInWord(authorID):
+    return True
+
 
 @client.event
 async def on_ready():
@@ -67,7 +86,30 @@ async def on_message(message):
                                             "Or if you would like to quit the game write `end`")
 
             else: # process the message as a character guess 
-                await message.channel.send("You guessed a character...")
+                charGuessed = message.content
+
+                if (charGuessed in runningGames[getAuthorIndex(message.author.id)]["guessedChars"]):
+                    await message.channel.send("You have guessed this character before! Come on now...")
+                else:
+                    runningGames[getAuthorIndex(message.author.id)]["guessedChars"] += charGuessed
+                    checkCharInWord(message.author.id)
+                    if (charGuessed in runningGames[getAuthorIndex(message.author.id)]["word"]):
+                        await message.channel.send("Nice! That character was in the word!")
+                    else:
+                        await message.channel.send(f"**{charGuessed}** is not in the word unfortunately!")
+                        runningGames[getAuthorIndex(message.author.id)]['remainingGuesses'] -= 1
+                        await message.channel.send(f"You have {runningGames[getAuthorIndex(message.author.id)]['remainingGuesses']} guesses left. {message.author.mention}")
+                
+                # print the hangState
+                await message.channel.send(f"``` {getHangState(runningGames[getAuthorIndex(message.author.id)]['remainingGuesses'])} ```")
+
+                if (runningGames[getAuthorIndex(message.author.id)]['remainingGuesses'] > 0):                
+                    embed = discord.Embed(title="Word: " + runningGames[getAuthorIndex(message.author.id)]["wordPrint"] , color=0x00fffa)
+                    await message.channel.send(embed=embed)
+                else:
+                    await message.channel.send(f"You're out of guesses {message.author.mention}. Better luck next time!")
+                    await message.channel.send(f"The word was **{ runningGames[getAuthorIndex(message.author.id)]['word'] }**\nThanks for playing 🤗!")
+                    endGame(message.author.id)
 
     await client.process_commands(message)
 
@@ -82,6 +124,7 @@ async def help(ctx):
     embed.set_footer(text="This bot was written by alta#0001")
     await ctx.channel.send(embed=embed)
 
+
 @client.command()
 async def play(ctx):
     await ctx.send(f'Ok {ctx.message.author.mention}, setting up the game now 👍')
@@ -91,12 +134,22 @@ async def play(ctx):
         await ctx.send(f'Actually {ctx.message.author.name}, it looks like you\'re already in a game...' +
                         'type `end` to leave it.')
     else:
-        # Add userID, guesses and a random word to runningGames
+        # Read a random word in
         randWord = nounList[random.randint(1, len(nounList))]
-        runningGames.append({"author": ctx.message.author.id, "remainingGuesses": 5, "word": randWord})
-        wordLength = "- " * len(runningGames[getAuthorIndex(ctx.message.author.id)]["word"])
-        embed = discord.Embed(title="Word: " + wordLength , color=0x00fffa)
+        await ctx.send(f'{randWord}')
+        # Creating the dictionary for the user
+        runningGames.append({"author": ctx.message.author.id, 
+                             "remainingGuesses": 5,
+                             "word": randWord,
+                             "guessedChars": "",
+                             "wordLength": len(randWord),
+                             "wordPrint": ("- " * (len(randWord) - 1))
+                            })
+
+        embed = discord.Embed(title="Word: " + runningGames[getAuthorIndex(ctx.message.author.id)]["wordPrint"] , color=0x00fffa)
         await ctx.channel.send(content=f"Here is your word {ctx.message.author.mention}: ", embed=embed)
+
+# Handles a guess attempt
 @client.command()
 async def guess(ctx, arg='null'):
     if (arg == 'null'):
