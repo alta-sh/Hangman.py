@@ -84,7 +84,7 @@ async def help(ctx):
 
 @client.command()
 async def play(ctx):
-    await ctx.send('Ok {0}, setting up the game now 👍'.format(ctx.message.author.mention))
+    await ctx.send(f'Ok {ctx.message.author.mention}, setting up the game now 👍')
 
     # Check if user isn't already in a game
     if(isInGame(ctx.message.author.id)):
@@ -94,8 +94,9 @@ async def play(ctx):
         # Add userID, guesses and a random word to runningGames
         randWord = nounList[random.randint(1, len(nounList))]
         runningGames.append({"author": ctx.message.author.id, "remainingGuesses": 5, "word": randWord})
-
-
+        wordLength = "- " * len(runningGames[getAuthorIndex(ctx.message.author.id)]["word"])
+        embed = discord.Embed(title="Word: " + wordLength , color=0x00fffa)
+        await ctx.channel.send(content=f"Here is your word {ctx.message.author.mention}: ", embed=embed)
 @client.command()
 async def guess(ctx, arg='null'):
     if (arg == 'null'):
