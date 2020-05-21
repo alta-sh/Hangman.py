@@ -1,10 +1,17 @@
 # A hangman bot for discord written by alta
 import hangState
+import random
 import discord
 from discord.ext import commands
 
 client = commands.Bot(command_prefix='hang!')
 client.remove_command('help')
+
+# Reading in nounlist
+nounList = []
+with open("nouns.txt", "r") as f:
+    for word in f:
+        nounList.append(word)
 
 runningGames = []
 commands = ["help", "play", "guess"]
@@ -67,8 +74,13 @@ async def on_message(message):
 
 @client.command()
 async def help(ctx):
-    await ctx.send('here are the commands you can use:... ')
-
+    embed = discord.Embed(title="Here are some commands for hangman.py", color=0x3be264)
+    embed.add_field(name="hang!play", value="Starts a new game of hangman", inline=False)
+    embed.add_field(name="hang!guess {your guess}", value="Guesses the word whilst in a game", inline=False)
+    embed.add_field(name="hang!prefix {new prefix}", value="changes the prefix for commands...", inline=False)
+    embed.add_field(name="end (whilst in a game)", value="Type 'end' when in a game to end the game", inline=False)
+    embed.set_footer(text="This bot was written by alta#0001")
+    await ctx.channel.send(embed=embed)
 
 @client.command()
 async def play(ctx):
@@ -80,7 +92,7 @@ async def play(ctx):
                         'type `end` to leave it.')
     else:
         # Add userID, guesses and a random word to runningGames
-        randWord = 'apples'
+        randWord = nounList[random.randint(1, len(nounList))]
         runningGames.append({"author": ctx.message.author.id, "remainingGuesses": 5, "word": randWord})
 
 
@@ -95,7 +107,9 @@ async def guess(ctx, arg='null'):
         # Check if the guess is correct
         authorIndex = getAuthorIndex(ctx.message.author.id)
         if (arg == runningGames[authorIndex]["word"]):
-            await ctx.send(f"Well done {ctx.message.author.mention}! You guessed the word!")       
+            await ctx.send(f"Well done {ctx.message.author.mention}! You guessed the word!") 
+            endGame(ctx.message.author.id)
+            return
         else: # If they get it wrong
             # Subtract their remaining guesses
             if (runningGames[authorIndex]["remainingGuesses"] != 1):
