@@ -163,7 +163,6 @@ async def play(ctx):
     else:
         # Read a random word in
         randWord = nounList[random.randint(1, len(nounList))][:-1] # Stripping \n off the end of the word
-        await ctx.send(f'{randWord}')
         # Creating the dictionary for the user
         runningGames.append({"author": ctx.message.author.id, 
                              "remainingGuesses": 5,
