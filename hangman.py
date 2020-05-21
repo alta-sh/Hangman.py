@@ -58,7 +58,9 @@ def checkCharInWord(authorID):
     # Check for chars in guessedChars, if they match with wordToGuess
     for ch in wordToGuess:
         if (ch in guessedChars):
-            wordPrint[wordToGuess.index(ch)] = ch
+            occurrences = [i for i, x in enumerate(wordToGuess) if x == ch]
+            for index in occurrences:
+                wordPrint[index] = ch
     
     wordToGuess = ''.join(wordToGuess)
     wordPrint = ' '.join(wordPrint)
@@ -115,7 +117,9 @@ async def on_message(message):
                     if (allCharsGuessed(message.author.id)): # End the game
                         await message.channel.send(f"🎉 Well done {message.author.mention}! You guessed the word! 🎉") 
                         endGame(message.author.id)
-                    elif (charGuessed in runningGames[getAuthorIndex(message.author.id)]["word"]):
+                        return
+                    
+                    if (charGuessed in runningGames[getAuthorIndex(message.author.id)]["word"]):
                         await message.channel.send("Nice! That character was in the word!")
                     else:
                         await message.channel.send(f"**{charGuessed}** is not in the word unfortunately!")
@@ -206,6 +210,15 @@ async def guess(ctx, arg='null'):
     else: # If they use the command while not in a game
         await ctx.send(f"You can only use this command whilst in a Hangman game {ctx.message.author.mention}.\n"+
                         "Type `hang!play` to get started...")
+
+@client.command()
+async def prefix(ctx, arg='null'):
+    if (arg == 'null'):
+        await ctx.send("Incorrect usage. Try: `hang!prefix {new prefix}`")
+        return
+    
+    await ctx.send(f"Ok {ctx.message.author.mention}, the prefix was successfully changed from `{client.command_prefix}` to `{arg}`")
+    client.command_prefix = arg
 
 # Reading the token
 with open('token.txt', 'r') as file:
