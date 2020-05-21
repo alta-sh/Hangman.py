@@ -51,8 +51,26 @@ def getAuthorIndex(authorID):
 # Will change the wordPrint part of the user dictionary
 # based on the charsGuessed value
 def checkCharInWord(authorID):
-    return True
+    wordToGuess = list(runningGames[getAuthorIndex(authorID)]['word'])
+    guessedChars = runningGames[getAuthorIndex(authorID)]['guessedChars']
+    wordPrint = list(runningGames[getAuthorIndex(authorID)]['wordPrint'].replace(" ", ""))
 
+    # Check for chars in guessedChars, if they match with wordToGuess
+    for ch in wordToGuess:
+        if (ch in guessedChars):
+            wordPrint[wordToGuess.index(ch)] = ch
+    
+    wordToGuess = ''.join(wordToGuess)
+    wordPrint = ' '.join(wordPrint)
+
+    runningGames[getAuthorIndex(authorID)]['wordPrint'] = wordPrint
+
+
+def allCharsGuessed(authorID):
+    word = list(runningGames[getAuthorIndex(authorID)]['wordPrint'].replace(" ", ""))
+    if (not "-" in word):
+        return True
+    return False
 
 @client.event
 async def on_ready():
@@ -93,7 +111,11 @@ async def on_message(message):
                 else:
                     runningGames[getAuthorIndex(message.author.id)]["guessedChars"] += charGuessed
                     checkCharInWord(message.author.id)
-                    if (charGuessed in runningGames[getAuthorIndex(message.author.id)]["word"]):
+                    
+                    if (allCharsGuessed(message.author.id)): # End the game
+                        await message.channel.send(f"🎉 Well done {message.author.mention}! You guessed the word! 🎉") 
+                        endGame(message.author.id)
+                    elif (charGuessed in runningGames[getAuthorIndex(message.author.id)]["word"]):
                         await message.channel.send("Nice! That character was in the word!")
                     else:
                         await message.channel.send(f"**{charGuessed}** is not in the word unfortunately!")
@@ -101,7 +123,8 @@ async def on_message(message):
                         await message.channel.send(f"You have {runningGames[getAuthorIndex(message.author.id)]['remainingGuesses']} guesses left. {message.author.mention}")
                 
                 # print the hangState
-                await message.channel.send(f"``` {getHangState(runningGames[getAuthorIndex(message.author.id)]['remainingGuesses'])} ```")
+                if (runningGames[getAuthorIndex(message.author.id)]["remainingGuesses"] != 5):
+                    await message.channel.send(f"``` {getHangState(runningGames[getAuthorIndex(message.author.id)]['remainingGuesses'])} ```")
 
                 if (runningGames[getAuthorIndex(message.author.id)]['remainingGuesses'] > 0):                
                     embed = discord.Embed(title="Word: " + runningGames[getAuthorIndex(message.author.id)]["wordPrint"] , color=0x00fffa)
@@ -135,15 +158,15 @@ async def play(ctx):
                         'type `end` to leave it.')
     else:
         # Read a random word in
-        randWord = nounList[random.randint(1, len(nounList))]
+        randWord = nounList[random.randint(1, len(nounList))][:-1] # Stripping \n off the end of the word
         await ctx.send(f'{randWord}')
         # Creating the dictionary for the user
         runningGames.append({"author": ctx.message.author.id, 
                              "remainingGuesses": 5,
-                             "word": randWord,
+                             "word": randWord, 
                              "guessedChars": "",
                              "wordLength": len(randWord),
-                             "wordPrint": ("- " * (len(randWord) - 1))
+                             "wordPrint": ("- " * len(randWord))
                             })
 
         embed = discord.Embed(title="Word: " + runningGames[getAuthorIndex(ctx.message.author.id)]["wordPrint"] , color=0x00fffa)
@@ -152,6 +175,9 @@ async def play(ctx):
 # Handles a guess attempt
 @client.command()
 async def guess(ctx, arg='null'):
+
+    print("guess: " + arg)
+
     if (arg == 'null'):
         await ctx.send("Incorrect usage. Try: `hang!guess {your guess}`")
         return
@@ -160,8 +186,8 @@ async def guess(ctx, arg='null'):
     if (isInGame(ctx.message.author.id)):
         # Check if the guess is correct
         authorIndex = getAuthorIndex(ctx.message.author.id)
-        if (arg == runningGames[authorIndex]["word"]):
-            await ctx.send(f"Well done {ctx.message.author.mention}! You guessed the word!") 
+        if (arg == runningGames[authorIndex]["word"]):            
+            await ctx.send(f"🎉 Well done {ctx.message.author.mention}! You guessed the word! 🎉") 
             endGame(ctx.message.author.id)
             return
         else: # If they get it wrong
@@ -170,6 +196,10 @@ async def guess(ctx, arg='null'):
                 runningGames[authorIndex]["remainingGuesses"] -= 1
                 await ctx.send(f"Unlucky {ctx.message.author.mention}, that's not the word..."+
                             f"\nYou have {runningGames[authorIndex]['remainingGuesses']} guesses left.")
+                # print the hangState
+                await ctx.send(f"``` {getHangState(runningGames[getAuthorIndex(ctx.author.id)]['remainingGuesses'])} ```")
+                embed = discord.Embed(title="Word: " + runningGames[getAuthorIndex(ctx.message.author.id)]["wordPrint"] , color=0x00fffa)
+                await ctx.channel.send(embed=embed)
             else:
                 await ctx.send(f"You're all out of guesses {ctx.message.author.mention}! Better luck next time...")
                 endGame(ctx.message.author.id)
