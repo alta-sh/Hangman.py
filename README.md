@@ -12,3 +12,6 @@ Simply clone the repository, and replace the line of text in `token.txt` with yo
 
 For any queries with this project you can either send an email to `me@alta.sh` or find me on Disccord at: `alta#0001`.
 Thanks for checking it out!
+
+### Example usage:
+![example use](https://github.com/alta-sh/discord.hangman.py/blob/master/example.PNG)
